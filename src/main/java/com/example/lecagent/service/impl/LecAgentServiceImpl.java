@@ -2,6 +2,8 @@ package com.example.lecagent.service.impl;
 
 import com.alibaba.cloud.ai.dashscope.api.DashScopeApi;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeCloudStore;
+import com.alibaba.cloud.ai.dashscope.rag.DashScopeDocumentCloudReader;
+import com.alibaba.cloud.ai.dashscope.rag.DashScopeDocumentCloudReaderOptions;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeStoreOptions;
 import com.example.lecagent.config.DashScopeProperties;
 import com.example.lecagent.service.LecAgentService;
@@ -13,6 +15,9 @@ import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.client.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
+import org.springframework.ai.chat.messages.MessageType;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.document.DocumentReader;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
 import org.springframework.ai.rag.preretrieval.query.expansion.MultiQueryExpander;
 import org.springframework.ai.rag.preretrieval.query.transformation.CompressionQueryTransformer;
@@ -21,13 +26,20 @@ import org.springframework.ai.rag.preretrieval.query.transformation.RewriteQuery
 import org.springframework.ai.rag.preretrieval.query.transformation.TranslationQueryTransformer;
 import org.springframework.ai.rag.retrieval.join.ConcatenationDocumentJoiner;
 import org.springframework.ai.rag.retrieval.join.DocumentJoiner;
+import org.springframework.ai.rag.retrieval.search.DocumentRetriever;
 import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
@@ -59,7 +71,7 @@ public class LecAgentServiceImpl implements LecAgentService {
 
         //初始化client
         this.chatClient = builder
-                .defaultSystem(DEFAULT_SYSTEM)
+                .defaultAdvisors(new PromptChatMemoryAdvisor(chatMemory))
                 .build();
 
         //多查询拓展
@@ -101,10 +113,12 @@ public class LecAgentServiceImpl implements LecAgentService {
                 .build();
     }
 
+
     @Override
     public Flux<String> simpleChat(String chatId, String userMessage) {
         log.info("当前提问："+chatId+"："+userMessage);
         return this.chatClient.prompt()
+                .system(DEFAULT_SYSTEM+"根据用户输入，在结尾生成三条用户可能想搜索的内容")
                 .user(userMessage)
                 .advisors(a->a
                         .param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
@@ -113,5 +127,42 @@ public class LecAgentServiceImpl implements LecAgentService {
                 .advisors(retrievalAugmentationAdvisor)
                 .stream()
                 .content();
+    }
+
+    @Override
+    public void importDocuments(MultipartFile multipartFile) throws IOException {
+        String path = saveToTempFile(multipartFile);
+
+        log.info(path);
+        DocumentReader reader = new DashScopeDocumentCloudReader(path,
+                new DashScopeApi(dashScopeProperties.getApiKey()),
+                null);
+        List<Document> documentList = reader.get();
+        vectorStore.add(documentList);
+        log.info("{} documents loaded and split", documentList.size());
+    }
+
+    public String saveToTempFile(MultipartFile multipartFile) throws IOException {
+        File tempFile = null;
+        try{
+            tempFile = File.createTempFile("temp", ".md");
+            tempFile.deleteOnExit();
+
+            try (InputStream inputStream = multipartFile.getInputStream();
+                 FileOutputStream outputStream = new FileOutputStream(tempFile)) {
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+            }
+
+            return tempFile.getAbsolutePath();
+        } catch (IOException e) {
+            if (tempFile != null) {
+                tempFile.delete(); // 异常时尝试删除临时文件
+            }
+            throw new RuntimeException("保存临时文件失败", e);
+        }
     }
 }

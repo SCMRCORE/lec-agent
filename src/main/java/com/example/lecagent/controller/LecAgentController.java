@@ -1,14 +1,15 @@
 package com.example.lecagent.controller;
 
-
 import com.example.lecagent.service.LecAgentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.config.DelegatingWebFluxConfiguration;
 import reactor.core.publisher.Flux;
+
+import java.io.IOException;
+import java.net.MalformedURLException;
 
 @Slf4j
 @RestController
@@ -22,4 +23,10 @@ public class LecAgentController {
     public Flux<String> simpleChat(String chatId, String userMessage){
         return lecAgentService.simpleChat(chatId, userMessage);
     }
+
+    @PostMapping("/import")
+    public void importDocuments(@RequestParam MultipartFile multipartFile) throws IOException {
+        lecAgentService.importDocuments(multipartFile);
+    }
+
 }
