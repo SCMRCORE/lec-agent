@@ -5,6 +5,7 @@ import com.alibaba.cloud.ai.dashscope.rag.DashScopeCloudStore;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeDocumentCloudReader;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeDocumentCloudReaderOptions;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeStoreOptions;
+import com.alibaba.cloud.ai.reader.obsidian.ObsidianDocumentReader;
 import com.example.lecagent.config.DashScopeProperties;
 import com.example.lecagent.service.LecAgentService;
 import kotlin.SinceKotlin;
@@ -32,6 +33,7 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
@@ -40,6 +42,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
@@ -132,12 +137,13 @@ public class LecAgentServiceImpl implements LecAgentService {
     @Override
     public void importDocuments(MultipartFile multipartFile) throws IOException {
         String path = saveToTempFile(multipartFile);
-
         log.info(path);
-        DocumentReader reader = new DashScopeDocumentCloudReader(path,
-                new DashScopeApi(dashScopeProperties.getApiKey()),
-                null);
+
+        // 1. import and split documents
+        DocumentReader reader = new DashScopeDocumentCloudReader(path, new DashScopeApi(dashScopeProperties.getApiKey()), null);
         List<Document> documentList = reader.get();
+        log.info(documentList.toString());
+
         vectorStore.add(documentList);
         log.info("{} documents loaded and split", documentList.size());
     }
@@ -145,7 +151,8 @@ public class LecAgentServiceImpl implements LecAgentService {
     public String saveToTempFile(MultipartFile multipartFile) throws IOException {
         File tempFile = null;
         try{
-            tempFile = File.createTempFile("temp", ".md");
+
+            tempFile = File.createTempFile("temp", ".pdf");
             tempFile.deleteOnExit();
 
             try (InputStream inputStream = multipartFile.getInputStream();
