@@ -5,9 +5,13 @@ import com.alibaba.cloud.ai.dashscope.rag.DashScopeCloudStore;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeDocumentCloudReader;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeDocumentCloudReaderOptions;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeStoreOptions;
+import com.alibaba.cloud.ai.parser.markdown.MarkdownDocumentParser;
+import com.alibaba.cloud.ai.parser.markdown.config.MarkdownDocumentParserConfig;
 import com.alibaba.cloud.ai.reader.obsidian.ObsidianDocumentReader;
 import com.example.lecagent.config.DashScopeProperties;
 import com.example.lecagent.service.LecAgentService;
+import com.example.lecagent.util.MinioUtils;
+import jakarta.annotation.Resource;
 import kotlin.SinceKotlin;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -33,18 +37,16 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.yaml.snakeyaml.error.Mark;
 import reactor.core.publisher.Flux;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 
 import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
@@ -68,6 +70,11 @@ public class LecAgentServiceImpl implements LecAgentService {
     private final QueryTransformer queryTranslation;
     private final QueryTransformer queryContext;
     private final RetrievalAugmentationAdvisor retrievalAugmentationAdvisor;
+
+    //minio
+    @Resource
+    private  MinioUtils minioUtils;
+
     public LecAgentServiceImpl(ChatClient.Builder builder, DashScopeProperties dashScopeProperties){
         this.dashScopeProperties=dashScopeProperties;
         DashScopeStoreOptions options = new DashScopeStoreOptions("lec-vector-store");
@@ -137,9 +144,10 @@ public class LecAgentServiceImpl implements LecAgentService {
     @Override
     public void importDocuments(MultipartFile multipartFile) throws IOException {
         String path = saveToTempFile(multipartFile);
+//        备份到oss
+        saveToMinIO(multipartFile);
         log.info(path);
 
-        // 1. import and split documents
         DocumentReader reader = new DashScopeDocumentCloudReader(path, new DashScopeApi(dashScopeProperties.getApiKey()), null);
         List<Document> documentList = reader.get();
         log.info(documentList.toString());
@@ -151,8 +159,7 @@ public class LecAgentServiceImpl implements LecAgentService {
     public String saveToTempFile(MultipartFile multipartFile) throws IOException {
         File tempFile = null;
         try{
-
-            tempFile = File.createTempFile("temp", ".pdf");
+            tempFile = File.createTempFile("ai-temp", ".pdf");
             tempFile.deleteOnExit();
 
             try (InputStream inputStream = multipartFile.getInputStream();
@@ -171,5 +178,12 @@ public class LecAgentServiceImpl implements LecAgentService {
             }
             throw new RuntimeException("保存临时文件失败", e);
         }
+    }
+
+    public String saveToMinIO(MultipartFile multipartFile){
+        minioUtils.upload(multipartFile, multipartFile.getOriginalFilename());
+        String url = minioUtils.getFileUrl(multipartFile.getOriginalFilename());
+        log.info("备份到MinIO的文件的url为:{}",url);
+        return url;
     }
 }

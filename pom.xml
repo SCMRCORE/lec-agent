@@ -42,6 +42,7 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
+<!--		sping-ai-->
 		<dependency>
 			<groupId>org.springframework.ai</groupId>
 			<artifactId>spring-ai-bom</artifactId>
@@ -49,6 +50,7 @@
 			<type>pom</type>
 			<scope>import</scope>
 		</dependency>
+<!--		spring-ai-alibaba-->
 		<dependency>
 			<groupId>com.alibaba.cloud.ai</groupId>
 			<artifactId>spring-ai-alibaba-starter</artifactId>
@@ -60,19 +62,24 @@
 			<artifactId>lombok</artifactId>
 			<version>${org.projectlombok.version}</version>
 		</dependency>
-
+<!--		baiduTranslateTool-->
 		<dependency>
 			<groupId>com.alibaba.cloud.ai</groupId>
 			<artifactId>spring-ai-alibaba-starter-tool-calling-baidutranslate</artifactId>
 			<version>${spring-ai-alibaba.version}</version>
 		</dependency>
-
+<!--		obsidian DocumentReader-->
 		<dependency>
 			<groupId>com.alibaba.cloud.ai</groupId>
 			<artifactId>spring-ai-alibaba-starter-document-reader-obsidian</artifactId>
 			<version>1.0.0-M6.2-SNAPSHOT</version>
 		</dependency>
-
+<!--		miniIO-->
+		<dependency>
+			<groupId>io.minio</groupId>
+			<artifactId>minio</artifactId>
+			<version>8.5.13</version>
+		</dependency>
 	</dependencies>
 
 	<build>
