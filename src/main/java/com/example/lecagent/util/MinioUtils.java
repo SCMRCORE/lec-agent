@@ -5,7 +5,6 @@ import io.minio.*;
 import io.minio.errors.*;
 import io.minio.http.Method;
 import lombok.SneakyThrows;
-import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -239,49 +238,49 @@ public class MinioUtils {
         return url;
     }
 
-    /**
-     * @Description description: 下载文件
-     */
-    public ResponseEntity<byte[]> download(String fileName) {
-        ResponseEntity<byte[]> responseEntity = null;
-        InputStream in = null;
-        ByteArrayOutputStream out = null;
-        try {
-            in = minioClient.getObject(GetObjectArgs.builder().bucket(configuration.getBucketName()).object(fileName).build());
-            out = new ByteArrayOutputStream();
-            IOUtils.copy(in, out);
-            //封装返回值
-            byte[] bytes = out.toByteArray();
-            HttpHeaders headers = new HttpHeaders();
-            try {
-                headers.add("Content-Disposition", "attachment;filename=" + URLEncoder.encode(fileName, "UTF-8"));
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
-            headers.setContentLength(bytes.length);
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.setAccessControlExposeHeaders(Arrays.asList("*"));
-            responseEntity = new ResponseEntity<byte[]>(bytes, headers, HttpStatus.SUCCESS);
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (in != null) {
-                    try {
-                        in.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (out != null) {
-                    out.close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return responseEntity;
-    }
+//    /**
+//     * @Description description: 下载文件
+//     */
+//    public ResponseEntity<byte[]> download(String fileName) {
+//        ResponseEntity<byte[]> responseEntity = null;
+//        InputStream in = null;
+//        ByteArrayOutputStream out = null;
+//        try {
+//            in = minioClient.getObject(GetObjectArgs.builder().bucket(configuration.getBucketName()).object(fileName).build());
+//            out = new ByteArrayOutputStream();
+//            IOUtils.copy(in, out);
+//            //封装返回值
+//            byte[] bytes = out.toByteArray();
+//            HttpHeaders headers = new HttpHeaders();
+//            try {
+//                headers.add("Content-Disposition", "attachment;filename=" + URLEncoder.encode(fileName, "UTF-8"));
+//            } catch (UnsupportedEncodingException e) {
+//                e.printStackTrace();
+//            }
+//            headers.setContentLength(bytes.length);
+//            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+//            headers.setAccessControlExposeHeaders(Arrays.asList("*"));
+//            responseEntity = new ResponseEntity<byte[]>(bytes, headers, HttpStatus.SUCCESS);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        } finally {
+//            try {
+//                if (in != null) {
+//                    try {
+//                        in.close();
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//                if (out != null) {
+//                    out.close();
+//                }
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//        return responseEntity;
+//    }
 
     /**
      * @param objectFile 对象文件

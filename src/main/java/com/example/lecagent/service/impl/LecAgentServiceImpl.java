@@ -3,24 +3,20 @@ package com.example.lecagent.service.impl;
 import com.alibaba.cloud.ai.dashscope.api.DashScopeApi;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeCloudStore;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeDocumentCloudReader;
-import com.alibaba.cloud.ai.dashscope.rag.DashScopeDocumentCloudReaderOptions;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeStoreOptions;
-import com.alibaba.cloud.ai.parser.markdown.MarkdownDocumentParser;
-import com.alibaba.cloud.ai.parser.markdown.config.MarkdownDocumentParserConfig;
-import com.alibaba.cloud.ai.reader.obsidian.ObsidianDocumentReader;
 import com.example.lecagent.config.DashScopeProperties;
+import com.example.lecagent.entity.pojo.Result;
+import com.example.lecagent.mapper.LecMapper;
 import com.example.lecagent.service.LecAgentService;
 import com.example.lecagent.util.MinioUtils;
+import com.example.lecagent.util.SnowflakeIdWorker;
 import jakarta.annotation.Resource;
-import kotlin.SinceKotlin;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.PromptChatMemoryAdvisor;
-import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.client.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
-import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.document.DocumentReader;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
@@ -29,24 +25,15 @@ import org.springframework.ai.rag.preretrieval.query.transformation.CompressionQ
 import org.springframework.ai.rag.preretrieval.query.transformation.QueryTransformer;
 import org.springframework.ai.rag.preretrieval.query.transformation.RewriteQueryTransformer;
 import org.springframework.ai.rag.preretrieval.query.transformation.TranslationQueryTransformer;
-import org.springframework.ai.rag.retrieval.join.ConcatenationDocumentJoiner;
-import org.springframework.ai.rag.retrieval.join.DocumentJoiner;
-import org.springframework.ai.rag.retrieval.search.DocumentRetriever;
 import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
-import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.yaml.snakeyaml.error.Mark;
 import reactor.core.publisher.Flux;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 
 import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
@@ -75,6 +62,15 @@ public class LecAgentServiceImpl implements LecAgentService {
     @Resource
     private  MinioUtils minioUtils;
 
+    @Autowired
+    private SnowflakeIdWorker snowflakeIdWorker;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+    @Resource
+    private LecMapper lecMapper;
+
     public LecAgentServiceImpl(ChatClient.Builder builder, DashScopeProperties dashScopeProperties){
         this.dashScopeProperties=dashScopeProperties;
         DashScopeStoreOptions options = new DashScopeStoreOptions("lec-vector-store");
@@ -83,6 +79,7 @@ public class LecAgentServiceImpl implements LecAgentService {
 
         //初始化client
         this.chatClient = builder
+                .defaultSystem(DEFAULT_SYSTEM)
                 .defaultAdvisors(new PromptChatMemoryAdvisor(chatMemory))
                 .build();
 
@@ -126,11 +123,44 @@ public class LecAgentServiceImpl implements LecAgentService {
     }
 
 
+    /**
+     * 新建对话
+     *
+     * @return
+     */
     @Override
-    public Flux<String> simpleChat(String chatId, String userMessage) {
+    public Result newChat() {
+        //生成唯一ID
+        Long chatId = snowflakeIdWorker.nextId();
+        String keyPrefix = "chat:" + chatId;
+        redisTemplate.opsForValue().set(keyPrefix, chatId);
+        return Result.okResult(chatId);
+    }
+
+    public Boolean checkChatId(Long chatId){
+        if(redisTemplate.opsForValue().get("chat:" + chatId)==null){
+            return false;
+//            && lecMapper.getChatId(chatId)==0
+            //TODO 存进数据库
+        }
+        return true;
+    }
+
+    /**
+     * 简单对话
+     * @param chatId
+     * @param userMessage
+     * @return
+     */
+    @Override
+    public Flux<String> simpleChat(Long chatId, String userMessage) {
+        //TODO 或许可以把判断逻辑加入拦截器
+        if(!checkChatId(chatId)){
+            throw new IllegalArgumentException("chatId无效");
+        }
+
         log.info("当前提问："+chatId+"："+userMessage);
         return this.chatClient.prompt()
-                .system(DEFAULT_SYSTEM+"根据用户输入，在结尾生成三条用户可能想搜索的内容")
                 .user(userMessage)
                 .advisors(a->a
                         .param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
@@ -141,6 +171,12 @@ public class LecAgentServiceImpl implements LecAgentService {
                 .content();
     }
 
+
+    /**
+     * 导入文档
+     * @param multipartFile
+     * @throws IOException
+     */
     @Override
     public void importDocuments(MultipartFile multipartFile) throws IOException {
         String path = saveToTempFile(multipartFile);
