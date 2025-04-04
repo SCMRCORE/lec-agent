@@ -10,8 +10,10 @@ import com.example.lecagent.mapper.LecMapper;
 import com.example.lecagent.service.LecAgentService;
 import com.example.lecagent.util.MinioUtils;
 import com.example.lecagent.util.SnowflakeIdWorker;
+import com.example.lecagent.util.UserContext;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.C;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.PromptChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.RetrievalAugmentationAdvisor;
@@ -35,6 +37,7 @@ import reactor.core.publisher.Flux;
 
 import java.io.*;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
 import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY;
@@ -130,18 +133,23 @@ public class LecAgentServiceImpl implements LecAgentService {
      */
     @Override
     public Result newChat() {
+        Long userId = UserContext.getUser();
         //生成唯一ID
         Long chatId = snowflakeIdWorker.nextId();
-        String keyPrefix = "chat:" + chatId;
-        redisTemplate.opsForValue().set(keyPrefix, chatId);
+        String checKey = "userId:"+userId+"chat:" + chatId;
+        redisTemplate.opsForValue().set(checKey, chatId, 10, TimeUnit.MINUTES);
         return Result.okResult(chatId);
     }
 
     public Boolean checkChatId(Long chatId){
-        if(redisTemplate.opsForValue().get("chat:" + chatId)==null){
-            return false;
-//            && lecMapper.getChatId(chatId)==0
-            //TODO 存进数据库
+        Long userId = UserContext.getUser();
+        String checKey = "userId:"+userId+"chat:" + chatId;
+        if(redisTemplate.opsForValue().get(checKey)==null && lecMapper.getChatId(chatId)==0){
+                return false;
+        }
+        if(redisTemplate.opsForValue().get(checKey)!=null){
+                lecMapper.storeChatId(userId, chatId);
+                redisTemplate.delete(checKey);
         }
         return true;
     }
@@ -154,7 +162,6 @@ public class LecAgentServiceImpl implements LecAgentService {
      */
     @Override
     public Flux<String> simpleChat(Long chatId, String userMessage) {
-        //TODO 或许可以把判断逻辑加入拦截器
         if(!checkChatId(chatId)){
             throw new IllegalArgumentException("chatId无效");
         }

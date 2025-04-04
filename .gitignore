@@ -38,6 +38,7 @@ build/
 # 忽略所有 .yml 和 .yaml 文件
 *.yml
 *.yaml
+*.jks
 
 # 忽略所有 .factories 文件
 *.factories

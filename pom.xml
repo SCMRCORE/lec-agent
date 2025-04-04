@@ -102,6 +102,18 @@
 			<artifactId>mybatis-plus-spring-boot3-starter</artifactId>
 			<version>3.5.7</version>
 		</dependency>
+		<!--hutool工具包-->
+		<dependency>
+			<groupId>cn.hutool</groupId>
+			<artifactId>hutool-all</artifactId>
+			<version>5.8.11</version>
+		</dependency>
+<!--		KeyPair-->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-rsa</artifactId>
+			<version>1.0.10.RELEASE</version> <!-- 使用最新稳定版本 -->
+		</dependency>
 	</dependencies>
 
 	<build>
