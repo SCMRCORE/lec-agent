@@ -1,9 +1,12 @@
 package com.example.lecagent.service.impl;
 
 import com.alibaba.cloud.ai.dashscope.api.DashScopeApi;
+import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
+import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeCloudStore;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeDocumentCloudReader;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeStoreOptions;
+import com.example.lecagent.advisor.ReasoningContentAdvisor;
 import com.example.lecagent.config.DashScopeProperties;
 import com.example.lecagent.entity.pojo.Result;
 import com.example.lecagent.mapper.LecMapper;
@@ -74,7 +77,16 @@ public class LecAgentServiceImpl implements LecAgentService {
     @Resource
     private LecMapper lecMapper;
 
-    public LecAgentServiceImpl(ChatClient.Builder builder, DashScopeProperties dashScopeProperties){
+    private final List<String> modelList = List.of(
+            "qwen-max",
+            "deepseek-r1",
+            "deepseek-v3",
+            "qwq-plus"
+    );
+
+    public LecAgentServiceImpl(DashScopeProperties dashScopeProperties, DashScopeChatModel chatModel){
+        ChatClient.Builder builder = ChatClient.builder(chatModel);
+
         this.dashScopeProperties=dashScopeProperties;
         DashScopeStoreOptions options = new DashScopeStoreOptions("lec-vector-store");
         DashScopeApi dashScopeApi = new DashScopeApi(dashScopeProperties.getApiKey());
@@ -83,7 +95,11 @@ public class LecAgentServiceImpl implements LecAgentService {
         //初始化client
         this.chatClient = builder
                 .defaultSystem(DEFAULT_SYSTEM)
-                .defaultAdvisors(new PromptChatMemoryAdvisor(chatMemory))
+                .defaultAdvisors(
+                        new PromptChatMemoryAdvisor(chatMemory),
+                        // 整合 QWQ 的思考过程到输出中
+                        new ReasoningContentAdvisor(0)
+                        )
                 .build();
 
         //多查询拓展
@@ -161,13 +177,21 @@ public class LecAgentServiceImpl implements LecAgentService {
      * @return
      */
     @Override
-    public Flux<String> simpleChat(Long chatId, String userMessage) {
+    public Flux<String> simpleChat(Long chatId, String userMessage, int type) {
         if(!checkChatId(chatId)){
             throw new IllegalArgumentException("chatId无效");
         }
 
+        //0qwen-max，1ds-r1, 2ds-v3, 3qwq-plus
+        if(type>3 || type<0) {
+            throw new IllegalArgumentException("type无效");
+        }
+
         log.info("当前提问："+chatId+"："+userMessage);
         return this.chatClient.prompt()
+                .options(DashScopeChatOptions.builder()
+                        .withModel(modelList.get(type))
+                        .build())
                 .user(userMessage)
                 .advisors(a->a
                         .param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)

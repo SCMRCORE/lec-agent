@@ -24,8 +24,8 @@ public class LecAgentController {
     }
 
     @GetMapping(value="/simplechat",produces = "text/html;charset=utf-8")
-    public Flux<String> simpleChat(Long chatId, String userMessage){
-        return lecAgentService.simpleChat(chatId, userMessage);
+    public Flux<String> simpleChat(Long chatId, String userMessage, int type){
+        return lecAgentService.simpleChat(chatId, userMessage, type);
     }
 
     @PostMapping("/import")

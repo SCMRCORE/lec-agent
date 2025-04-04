@@ -7,7 +7,7 @@ import reactor.core.publisher.Flux;
 import java.io.IOException;
 
 public interface LecAgentService {
-    Flux<String> simpleChat(Long chatId, String userMessage);
+    Flux<String> simpleChat(Long chatId, String userMessage, int type);
 
     void importDocuments(MultipartFile multipartFile) throws IOException;
 
