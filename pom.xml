@@ -50,6 +50,12 @@
 			<type>pom</type>
 			<scope>import</scope>
 		</dependency>
+		<!--spring-ai-core-->
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-core</artifactId>
+			<version>1.0.0-M6</version>
+		</dependency>
 <!--		spring-ai-alibaba-->
 		<dependency>
 			<groupId>com.alibaba.cloud.ai</groupId>
@@ -67,12 +73,6 @@
 			<groupId>com.alibaba.cloud.ai</groupId>
 			<artifactId>spring-ai-alibaba-starter-tool-calling-baidutranslate</artifactId>
 			<version>${spring-ai-alibaba.version}</version>
-		</dependency>
-<!--		obsidian DocumentReader-->
-		<dependency>
-			<groupId>com.alibaba.cloud.ai</groupId>
-			<artifactId>spring-ai-alibaba-starter-document-reader-obsidian</artifactId>
-			<version>1.0.0-M6.2-SNAPSHOT</version>
 		</dependency>
 <!--		miniIO-->
 		<dependency>
@@ -114,6 +114,18 @@
 			<artifactId>spring-security-rsa</artifactId>
 			<version>1.0.10.RELEASE</version> <!-- 使用最新稳定版本 -->
 		</dependency>
+		<!-- 添加Spring AI MCP starter依赖 -->
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-mcp-client-spring-boot-starter</artifactId>
+			<version>1.0.0-M6</version>
+		</dependency>
+<!--		Server有需要再引入把-->
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.ai</groupId>-->
+<!--			<artifactId>spring-ai-mcp-server-spring-boot-starter</artifactId>-->
+<!--			<version>1.0.0-M6</version>-->
+<!--		</dependency>-->
 	</dependencies>
 
 	<build>
