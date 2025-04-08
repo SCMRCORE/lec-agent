@@ -28,6 +28,11 @@ public class LecAgentController {
         return lecAgentService.simpleChat(chatId, userMessage, type);
     }
 
+    @GetMapping(value="/mcpchat",produces = "text/html;charset=utf-8")
+    public String mcpChat(Long chatId, String userMessage){
+        return lecAgentService.mcpChat(chatId, userMessage);
+    }
+
     @PostMapping("/import")
     public void importDocuments(@RequestParam MultipartFile multipartFile) throws IOException {
         lecAgentService.importDocuments(multipartFile);

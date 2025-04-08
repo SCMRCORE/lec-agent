@@ -31,6 +31,7 @@ import org.springframework.ai.rag.preretrieval.query.transformation.QueryTransfo
 import org.springframework.ai.rag.preretrieval.query.transformation.RewriteQueryTransformer;
 import org.springframework.ai.rag.preretrieval.query.transformation.TranslationQueryTransformer;
 import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
+import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -84,7 +85,7 @@ public class LecAgentServiceImpl implements LecAgentService {
             "qwq-plus"
     );
 
-    public LecAgentServiceImpl(DashScopeProperties dashScopeProperties, DashScopeChatModel chatModel){
+    public LecAgentServiceImpl(DashScopeProperties dashScopeProperties, DashScopeChatModel chatModel, ToolCallbackProvider tools){
         ChatClient.Builder builder = ChatClient.builder(chatModel);
 
         this.dashScopeProperties=dashScopeProperties;
@@ -94,6 +95,7 @@ public class LecAgentServiceImpl implements LecAgentService {
 
         //初始化client
         this.chatClient = builder
+                .defaultTools(tools)
                 .defaultSystem(DEFAULT_SYSTEM)
                 .defaultAdvisors(
                         new PromptChatMemoryAdvisor(chatMemory),
@@ -161,11 +163,11 @@ public class LecAgentServiceImpl implements LecAgentService {
         Long userId = UserContext.getUser();
         String checKey = "userId:"+userId+"chat:" + chatId;
         if(redisTemplate.opsForValue().get(checKey)==null && lecMapper.getChatId(chatId)==0){
-                return false;
+            return false;
         }
         if(redisTemplate.opsForValue().get(checKey)!=null){
-                lecMapper.storeChatId(userId, chatId);
-                redisTemplate.delete(checKey);
+            lecMapper.storeChatId(userId, chatId);
+            redisTemplate.delete(checKey);
         }
         return true;
     }
@@ -202,6 +204,23 @@ public class LecAgentServiceImpl implements LecAgentService {
                 .content();
     }
 
+    @Override
+    public String mcpChat(Long chatId, String userMessage) {
+        if(!checkChatId(chatId)){
+            throw new IllegalArgumentException("chatId无效");
+        }
+
+        log.info("当前提问："+chatId+"："+userMessage);
+        return this.chatClient.prompt()
+                .user(userMessage)
+                .advisors(a->a
+                        .param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
+                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 100)
+                )
+                .advisors(retrievalAugmentationAdvisor)
+                .call()
+                .content();
+    }
 
     /**
      * 导入文档

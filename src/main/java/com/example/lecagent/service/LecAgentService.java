@@ -12,4 +12,7 @@ public interface LecAgentService {
     void importDocuments(MultipartFile multipartFile) throws IOException;
 
     Result<Long> newChat();
+
+    String mcpChat(Long chatId, String userMessage);
+
 }
