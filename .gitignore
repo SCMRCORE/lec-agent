@@ -39,6 +39,7 @@ build/
 *.yml
 *.yaml
 *.jks
+*.json
 
 # 忽略所有 .factories 文件
 *.factories

@@ -2,6 +2,7 @@ package com.example.lecagent.controller;
 
 import com.example.lecagent.entity.pojo.Result;
 import com.example.lecagent.service.LecAgentService;
+import com.example.lecagent.service.LecMcpService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,9 @@ public class LecAgentController {
     @Autowired
     private LecAgentService lecAgentService;
 
+    @Autowired
+    private LecMcpService lecMcpService;
+
     @GetMapping(value="/newchat")
     public Result<Long> newChat(){
         return lecAgentService.newChat();
@@ -29,8 +33,8 @@ public class LecAgentController {
     }
 
     @GetMapping(value="/mcpchat",produces = "text/html;charset=utf-8")
-    public String mcpChat(Long chatId, String userMessage){
-        return lecAgentService.mcpChat(chatId, userMessage);
+    public Flux<String> mcpChat(Long chatId, String userMessage){
+        return lecMcpService.mcpChat(chatId, userMessage);
     }
 
     @PostMapping("/import")
