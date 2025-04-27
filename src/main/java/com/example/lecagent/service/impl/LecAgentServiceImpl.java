@@ -23,6 +23,7 @@ import org.springframework.ai.chat.client.advisor.PromptChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.document.DocumentReader;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
@@ -197,7 +198,7 @@ public class LecAgentServiceImpl implements LecAgentService {
                         .build())
                 .user(userMessage)
                 .advisors(a->a
-                        .param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
+                        .param(CHAT_MEMORY_CONVERSATION_ID_KEY, String.valueOf(chatId))
                         .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 100)
                 )
                 .advisors(retrievalAugmentationAdvisor)
@@ -215,12 +216,18 @@ public class LecAgentServiceImpl implements LecAgentService {
         return this.chatClient.prompt()
                 .user(userMessage)
                 .advisors(a->a
-                        .param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
+                        .param(CHAT_MEMORY_CONVERSATION_ID_KEY, String.valueOf(chatId))
                         .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 100)
                 )
                 .advisors(retrievalAugmentationAdvisor)
                 .call()
                 .content();
+    }
+
+    @Override
+    public Result getNowHistory(Long chatId) {
+        List<Message> chatRecord =  chatMemory.get(String.valueOf(chatId), 10);
+        return Result.okResult(chatRecord);
     }
 
     @Override
@@ -236,9 +243,11 @@ public class LecAgentServiceImpl implements LecAgentService {
         List<Long> chatHistories = lecMapper.getHistory(userId);
         if(!chatHistories.contains(chatId)){
             return Result.errorResult(AppHttpCodeEnum.INVALID_CHATID);
+        }else{
+            lecMapper.deleteHistory(chatId, userId);
+            chatMemory.clear(String.valueOf(chatId));
+            return Result.okResult(AppHttpCodeEnum.DELETE_SUCCESS);
         }
-        lecMapper.deleteHistory(chatId, userId);
-        return Result.okResult(AppHttpCodeEnum.DELETE_SUCCESS);
     }
 
     /**

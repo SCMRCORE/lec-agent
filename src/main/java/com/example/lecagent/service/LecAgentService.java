@@ -18,4 +18,6 @@ public interface LecAgentService {
     Result getHistory();
 
     Result deleteHistory(Long chatId);
+
+    Result getNowHistory(Long chatId);
 }
