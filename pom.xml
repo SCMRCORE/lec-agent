@@ -126,6 +126,12 @@
 <!--			<artifactId>spring-ai-mcp-server-spring-boot-starter</artifactId>-->
 <!--			<version>1.0.0-M6</version>-->
 <!--		</dependency>-->
+		<!--ChatMemory-MySQL-->
+<!--		<dependency>-->
+<!--			<groupId>com.alibaba.cloud.ai</groupId>-->
+<!--			<artifactId>spring-ai-alibaba-mysql-memory</artifactId>-->
+<!--			<version>1.0.0-M6</version>-->
+<!--		</dependency>-->
 	</dependencies>
 
 	<build>
