@@ -7,6 +7,7 @@ import com.alibaba.cloud.ai.dashscope.rag.DashScopeCloudStore;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeDocumentCloudReader;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeStoreOptions;
 import com.example.lecagent.advisor.ReasoningContentAdvisor;
+import com.example.lecagent.config.AppHttpCodeEnum;
 import com.example.lecagent.config.DashScopeProperties;
 import com.example.lecagent.entity.pojo.Result;
 import com.example.lecagent.mapper.LecMapper;
@@ -220,6 +221,24 @@ public class LecAgentServiceImpl implements LecAgentService {
                 .advisors(retrievalAugmentationAdvisor)
                 .call()
                 .content();
+    }
+
+    @Override
+    public Result getHistory() {
+        Long userId = UserContext.getUser();
+        List<Long> chatHistories = lecMapper.getHistory(userId);
+        return Result.okResult(chatHistories);
+    }
+
+    @Override
+    public Result deleteHistory(Long chatId) {
+        Long userId = UserContext.getUser();
+        List<Long> chatHistories = lecMapper.getHistory(userId);
+        if(!chatHistories.contains(chatId)){
+            return Result.errorResult(AppHttpCodeEnum.INVALID_CHATID);
+        }
+        lecMapper.deleteHistory(chatId, userId);
+        return Result.okResult(AppHttpCodeEnum.DELETE_SUCCESS);
     }
 
     /**

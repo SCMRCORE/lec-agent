@@ -15,4 +15,7 @@ public interface LecAgentService {
 
     String mcpChat(Long chatId, String userMessage);
 
+    Result getHistory();
+
+    Result deleteHistory(Long chatId);
 }

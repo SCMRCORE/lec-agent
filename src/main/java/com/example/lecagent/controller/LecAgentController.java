@@ -42,4 +42,13 @@ public class LecAgentController {
         lecAgentService.importDocuments(multipartFile);
     }
 
+    @GetMapping("/history")
+    public Result getChatHistory(){
+        return lecAgentService.getHistory();
+    }
+
+    @GetMapping("/delHistory")
+    public Result deleteHistory(Long chatId){
+        return lecAgentService.deleteHistory(chatId);
+    }
 }
