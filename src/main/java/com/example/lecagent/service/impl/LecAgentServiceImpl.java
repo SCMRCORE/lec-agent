@@ -158,6 +158,7 @@ public class LecAgentServiceImpl implements LecAgentService {
         Long chatId = snowflakeIdWorker.nextId();
         String checKey = "userId:"+userId+"chat:" + chatId;
         redisTemplate.opsForValue().set(checKey, chatId, 10, TimeUnit.MINUTES);
+        log.info("新建对话："+chatId);
         return Result.okResult(chatId);
     }
 
