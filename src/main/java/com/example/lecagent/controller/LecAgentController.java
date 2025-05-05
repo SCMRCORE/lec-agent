@@ -48,7 +48,7 @@ public class LecAgentController {
 
     @GetMapping("/history/{chatId}")
     public Result getNowHistory(@PathVariable String chatId){
-        return  lecAgentService.getNowHistory(chatId);
+        return lecAgentService.getNowHistory(chatId);
     }
 
     @GetMapping("/history")
