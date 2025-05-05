@@ -7,17 +7,16 @@ import reactor.core.publisher.Flux;
 import java.io.IOException;
 
 public interface LecAgentService {
-    Flux<String> simpleChat(Long chatId, String userMessage, int type);
+    Flux<String> simpleChat(String chatId, String userMessage, int type);
 
     void importDocuments(MultipartFile multipartFile) throws IOException;
+    Long newChat();
 
-    Result<Long> newChat();
-
-    String mcpChat(Long chatId, String userMessage);
+//    String mcpChat(Long chatId, String userMessage);
 
     Result getHistory();
 
-    Result deleteHistory(Long chatId);
+    Result deleteHistory(String chatId);
 
-    Result getNowHistory(Long chatId);
+    Result getNowHistory(String chatId);
 }

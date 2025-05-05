@@ -26,19 +26,20 @@ public class LecAgentController {
     private LecMcpService lecMcpService;
 
     @GetMapping(value="/newchat")
-    public Result<Long> newChat(){
-        return lecAgentService.newChat();
+    public Result<String> newChat(){
+        Long newChatId = lecAgentService.newChat();
+        return Result.okResult(newChatId.toString());
     }
 
     @GetMapping(value="/simplechat",produces = "text/html;charset=utf-8")
-    public Flux<String> simpleChat(Long chatId, String userMessage, int type){
+    public Flux<String> simpleChat(String chatId, String userMessage, int type){
         return lecAgentService.simpleChat(chatId, userMessage, type);
     }
 
-    @GetMapping(value="/mcpchat",produces = "text/html;charset=utf-8")
-    public Flux<String> mcpChat(Long chatId, String userMessage){
-        return lecMcpService.mcpChat(chatId, userMessage);
-    }
+//    @GetMapping(value="/mcpchat",produces = "text/html;charset=utf-8")
+//    public Flux<String> mcpChat(Long chatId, String userMessage){
+//        return lecMcpService.mcpChat(chatId, userMessage);
+//    }
 
     @PostMapping("/import")
     public void importDocuments(@RequestParam MultipartFile multipartFile) throws IOException {
@@ -46,7 +47,7 @@ public class LecAgentController {
     }
 
     @GetMapping("/history/{chatId}")
-    public Result getNowHistory(@PathVariable Long chatId){
+    public Result getNowHistory(@PathVariable String chatId){
         return  lecAgentService.getNowHistory(chatId);
     }
 
@@ -56,7 +57,7 @@ public class LecAgentController {
     }
 
     @GetMapping("/delHistory")
-    public Result deleteHistory(Long chatId){
+    public Result deleteHistory(String chatId){
         return lecAgentService.deleteHistory(chatId);
     }
 }

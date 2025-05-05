@@ -42,6 +42,7 @@ import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -152,14 +153,14 @@ public class LecAgentServiceImpl implements LecAgentService {
      * @return
      */
     @Override
-    public Result newChat() {
+    public Long newChat() {
         Long userId = UserContext.getUser();
         //生成唯一ID
         Long chatId = snowflakeIdWorker.nextId();
         String checKey = "userId:"+userId+"chat:" + chatId;
         redisTemplate.opsForValue().set(checKey, chatId, 10, TimeUnit.MINUTES);
         log.info("新建对话："+chatId);
-        return Result.okResult(chatId);
+        return chatId;
     }
 
     public Boolean checkChatId(Long chatId){
@@ -177,12 +178,13 @@ public class LecAgentServiceImpl implements LecAgentService {
 
     /**
      * 简单对话
-     * @param chatId
+     * @param chatIdString
      * @param userMessage
      * @return
      */
     @Override
-    public Flux<String> simpleChat(Long chatId, String userMessage, int type) {
+    public Flux<String> simpleChat(String chatIdString, String userMessage, int type) {
+        Long chatId = Long.valueOf(chatIdString);
         if(!checkChatId(chatId)){
             throw new IllegalArgumentException("chatId无效");
         }
@@ -207,26 +209,27 @@ public class LecAgentServiceImpl implements LecAgentService {
                 .content();
     }
 
-    @Override
-    public String mcpChat(Long chatId, String userMessage) {
-        if(!checkChatId(chatId)){
-            throw new IllegalArgumentException("chatId无效");
-        }
+//    @Override
+//    public String mcpChat(Long chatId, String userMessage) {
+//        if(!checkChatId(chatId)){
+//            throw new IllegalArgumentException("chatId无效");
+//        }
+//
+//        log.info("当前提问："+chatId+"："+userMessage);
+//        return this.chatClient.prompt()
+//                .user(userMessage)
+//                .advisors(a->a
+//                        .param(CHAT_MEMORY_CONVERSATION_ID_KEY, String.valueOf(chatId))
+//                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 100)
+//                )
+//                .advisors(retrievalAugmentationAdvisor)
+//                .call()
+//                .content();
+//    }
 
-        log.info("当前提问："+chatId+"："+userMessage);
-        return this.chatClient.prompt()
-                .user(userMessage)
-                .advisors(a->a
-                        .param(CHAT_MEMORY_CONVERSATION_ID_KEY, String.valueOf(chatId))
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 100)
-                )
-                .advisors(retrievalAugmentationAdvisor)
-                .call()
-                .content();
-    }
-
     @Override
-    public Result getNowHistory(Long chatId) {
+    public Result getNowHistory(String chatIdString) {
+        Long chatId = Long.valueOf(chatIdString);
         List<Message> chatRecord =  chatMemory.get(String.valueOf(chatId), 10);
         return Result.okResult(chatRecord);
     }
@@ -234,12 +237,17 @@ public class LecAgentServiceImpl implements LecAgentService {
     @Override
     public Result getHistory() {
         Long userId = UserContext.getUser();
-        List<Long> chatHistories = lecMapper.getHistory(userId);
+        List<Long> chatHistoriesLong = lecMapper.getHistory(userId);
+        List<String> chatHistories = new ArrayList<>();
+        for(Long chatId:chatHistoriesLong){
+            chatHistories.add(String.valueOf(chatId));
+        }
         return Result.okResult(chatHistories);
     }
 
     @Override
-    public Result deleteHistory(Long chatId) {
+    public Result deleteHistory(String chatIdString) {
+        Long chatId = Long.valueOf(chatIdString);
         Long userId = UserContext.getUser();
         List<Long> chatHistories = lecMapper.getHistory(userId);
         if(!chatHistories.contains(chatId)){
