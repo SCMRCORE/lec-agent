@@ -167,6 +167,7 @@ public class LecAgentServiceImpl implements LecAgentService {
         Long userId = UserContext.getUser();
         String checKey = "userId:"+userId+"chat:" + chatId;
         if(redisTemplate.opsForValue().get(checKey)==null && lecMapper.getChatId(chatId)==0){
+            log.info("当前chatId无效："+chatId);
             return false;
         }
         if(redisTemplate.opsForValue().get(checKey)!=null){
