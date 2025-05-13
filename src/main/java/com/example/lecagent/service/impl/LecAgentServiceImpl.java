@@ -82,7 +82,7 @@ public class LecAgentServiceImpl implements LecAgentService {
     private LecMapper lecMapper;
 
     private final List<String> modelList = List.of(
-            "qwen-max",
+            "qwen-max-latest",
             "deepseek-r1",
             "deepseek-v3",
             "qwq-plus"
