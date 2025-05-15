@@ -20,12 +20,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.checkerframework.checker.units.qual.C;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.PromptChatMemoryAdvisor;
-import org.springframework.ai.chat.client.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.document.DocumentReader;
+import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
 import org.springframework.ai.rag.preretrieval.query.expansion.MultiQueryExpander;
 import org.springframework.ai.rag.preretrieval.query.transformation.CompressionQueryTransformer;
@@ -82,7 +82,7 @@ public class LecAgentServiceImpl implements LecAgentService {
     private LecMapper lecMapper;
 
     private final List<String> modelList = List.of(
-            "qwen-max-latest",
+            "qwen-plus-latest",
             "deepseek-r1",
             "deepseek-v3",
             "qwq-plus"
@@ -195,7 +195,7 @@ public class LecAgentServiceImpl implements LecAgentService {
             throw new IllegalArgumentException("type无效");
         }
 
-        log.info("当前提问："+chatId+"："+userMessage);
+        log.info(chatId+"提问"+modelList.get(type)+"："+userMessage);
         return this.chatClient.prompt()
                 .options(DashScopeChatOptions.builder()
                         .withModel(modelList.get(type))

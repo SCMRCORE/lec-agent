@@ -18,10 +18,10 @@
 		<java.version>17</java.version>
 		<org.projectlombok.version>1.18.30</org.projectlombok.version>
 		<!-- Spring AI -->
-		<spring-ai.version>1.0.0-M6</spring-ai.version>
+		<spring-ai.version>1.0.0-M8</spring-ai.version>
 
 		<!-- Spring AI Alibaba -->
-		<spring-ai-alibaba.version>1.0.0-M6.1</spring-ai-alibaba.version>
+		<spring-ai-alibaba.version>1.0.0-M8.1-SNAPSHOT</spring-ai-alibaba.version>
 	</properties>
 
 	<dependencies>
@@ -50,12 +50,12 @@
 			<type>pom</type>
 			<scope>import</scope>
 		</dependency>
-		<!--spring-ai-core-->
-		<dependency>
-			<groupId>org.springframework.ai</groupId>
-			<artifactId>spring-ai-core</artifactId>
-			<version>1.0.0-M6</version>
-		</dependency>
+<!--		&lt;!&ndash;spring-ai-core&ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.ai</groupId>-->
+<!--			<artifactId>spring-ai-core</artifactId>-->
+<!--			<version>${spring-ai.version}</version>-->
+<!--		</dependency>-->
 <!--		spring-ai-alibaba-->
 		<dependency>
 			<groupId>com.alibaba.cloud.ai</groupId>
@@ -68,12 +68,12 @@
 			<artifactId>lombok</artifactId>
 			<version>${org.projectlombok.version}</version>
 		</dependency>
-<!--		baiduTranslateTool-->
-		<dependency>
-			<groupId>com.alibaba.cloud.ai</groupId>
-			<artifactId>spring-ai-alibaba-starter-tool-calling-baidutranslate</artifactId>
-			<version>${spring-ai-alibaba.version}</version>
-		</dependency>
+<!--&lt;!&ndash;		baiduTranslateTool&ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>com.alibaba.cloud.ai</groupId>-->
+<!--			<artifactId>spring-ai-alibaba-starter-tool-calling-baidutranslate</artifactId>-->
+<!--			<version>${spring-ai-alibaba.version}</version>-->
+<!--		</dependency>-->
 <!--		miniIO-->
 		<dependency>
 			<groupId>io.minio</groupId>
@@ -117,8 +117,8 @@
 		<!-- 添加Spring AI MCP starter依赖 -->
 		<dependency>
 			<groupId>org.springframework.ai</groupId>
-			<artifactId>spring-ai-mcp-client-spring-boot-starter</artifactId>
-			<version>1.0.0-M6</version>
+			<artifactId>spring-ai-starter-mcp-client</artifactId>
+			<version>${spring-ai.version}</version>
 		</dependency>
 <!--		Server有需要再引入把-->
 <!--		<dependency>-->
