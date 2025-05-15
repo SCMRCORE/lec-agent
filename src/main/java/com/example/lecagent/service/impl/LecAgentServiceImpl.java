@@ -6,6 +6,8 @@ import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeCloudStore;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeDocumentCloudReader;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeStoreOptions;
+import com.alibaba.cloud.ai.memory.redis.RedisChatMemory;
+import com.alibaba.cloud.ai.memory.redis.RedisChatMemoryRepository;
 import com.example.lecagent.advisor.ReasoningContentAdvisor;
 import com.example.lecagent.config.AppHttpCodeEnum;
 import com.example.lecagent.config.DashScopeProperties;
@@ -17,11 +19,12 @@ import com.example.lecagent.util.SnowflakeIdWorker;
 import com.example.lecagent.util.UserContext;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.checkerframework.checker.units.qual.C;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.PromptChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.document.DocumentReader;
@@ -36,6 +39,7 @@ import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -53,12 +57,19 @@ import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvis
 @Slf4j
 public class LecAgentServiceImpl implements LecAgentService {
 
+    //注入ChatClient
     private final ChatClient chatClient;
 
+    //注入DashScopeProperties
     private final DashScopeProperties dashScopeProperties;
 
+    //注入VectorStore
     private final VectorStore vectorStore;
-    ChatMemory chatMemory = new InMemoryChatMemory();
+
+    //注入RedisChatMemory
+    private final RedisChatMemory redisChatMemory;
+
+    //默认系统
     private final String DEFAULT_SYSTEM = "你是乐程娘，涉及到你自己的时候用乐程娘称呼自己，语气可爱一点，擅长计算机专业相关，请用中文回答用户的问题，可以适当加一些emoji";
 
     //RAG高级组件
@@ -72,15 +83,19 @@ public class LecAgentServiceImpl implements LecAgentService {
     @Resource
     private  MinioUtils minioUtils;
 
+    //注入SnowflakeIdWorker
     @Autowired
     private SnowflakeIdWorker snowflakeIdWorker;
 
+    //注入RedisTemplate
     @Autowired
     private RedisTemplate redisTemplate;
 
+    //注入LecMapper
     @Resource
     private LecMapper lecMapper;
 
+    //模型列表
     private final List<String> modelList = List.of(
             "qwen-plus-latest",
             "deepseek-r1",
@@ -88,7 +103,9 @@ public class LecAgentServiceImpl implements LecAgentService {
             "qwq-plus"
     );
 
-    public LecAgentServiceImpl(DashScopeProperties dashScopeProperties, DashScopeChatModel chatModel, ToolCallbackProvider tools){
+    //构造函数
+    public LecAgentServiceImpl(DashScopeProperties dashScopeProperties, DashScopeChatModel chatModel, ToolCallbackProvider tools, RedisChatMemory redisChatMemory){
+        this.redisChatMemory = redisChatMemory;
         ChatClient.Builder builder = ChatClient.builder(chatModel);
 
         this.dashScopeProperties=dashScopeProperties;
@@ -101,7 +118,7 @@ public class LecAgentServiceImpl implements LecAgentService {
                 .defaultTools(tools)
                 .defaultSystem(DEFAULT_SYSTEM)
                 .defaultAdvisors(
-                        new PromptChatMemoryAdvisor(chatMemory),
+                        new MessageChatMemoryAdvisor(redisChatMemory),
                         // 整合 QWQ 的思考过程到输出中
                         new ReasoningContentAdvisor(0)
                         )
@@ -163,6 +180,7 @@ public class LecAgentServiceImpl implements LecAgentService {
         return chatId;
     }
 
+    //检查chatId是否有效
     public Boolean checkChatId(Long chatId){
         Long userId = UserContext.getUser();
         String checKey = "userId:"+userId+"chat:" + chatId;
@@ -228,13 +246,15 @@ public class LecAgentServiceImpl implements LecAgentService {
 //                .content();
 //    }
 
+    //获取当前对话历史
     @Override
     public Result getNowHistory(String chatIdString) {
         Long chatId = Long.valueOf(chatIdString);
-        List<Message> chatRecord =  chatMemory.get(String.valueOf(chatId), 10);
+        List<Message> chatRecord =  redisChatMemory.get(String.valueOf(chatId), 10);
         return Result.okResult(chatRecord);
     }
 
+    //获取历史对话
     @Override
     public Result getHistory() {
         Long userId = UserContext.getUser();
@@ -246,6 +266,7 @@ public class LecAgentServiceImpl implements LecAgentService {
         return Result.okResult(chatHistories);
     }
 
+    //删除历史对话
     @Override
     public Result deleteHistory(String chatIdString) {
         Long chatId = Long.valueOf(chatIdString);
@@ -255,7 +276,7 @@ public class LecAgentServiceImpl implements LecAgentService {
             return Result.errorResult(AppHttpCodeEnum.INVALID_CHATID);
         }else{
             lecMapper.deleteHistory(chatId, userId);
-            chatMemory.clear(String.valueOf(chatId));
+            redisChatMemory.clear(String.valueOf(chatId));
             return Result.okResult(AppHttpCodeEnum.DELETE_SUCCESS);
         }
     }
@@ -280,6 +301,7 @@ public class LecAgentServiceImpl implements LecAgentService {
         log.info("{} documents loaded and split", documentList.size());
     }
 
+    //保存到临时文件
     public String saveToTempFile(MultipartFile multipartFile) throws IOException {
         File tempFile = null;
         try{
@@ -304,6 +326,7 @@ public class LecAgentServiceImpl implements LecAgentService {
         }
     }
 
+    //保存到MinIO
     public String saveToMinIO(MultipartFile multipartFile){
         minioUtils.upload(multipartFile, multipartFile.getOriginalFilename());
         String url = minioUtils.getFileUrl(multipartFile.getOriginalFilename());

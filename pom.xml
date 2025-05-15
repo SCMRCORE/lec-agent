@@ -62,6 +62,17 @@
 			<artifactId>spring-ai-alibaba-starter</artifactId>
 			<version>${spring-ai-alibaba.version}</version>
 		</dependency>
+<!--		redisMemory-->
+		<dependency>
+			<groupId>com.alibaba.cloud.ai</groupId>
+			<artifactId>spring-ai-alibaba-starter-memory-redis</artifactId>
+			<version>${spring-ai-alibaba.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>redis.clients</groupId>
+			<artifactId>jedis</artifactId>
+			<version>5.2.0</version>
+		</dependency>
 		<!-- lombok 管理 -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -120,6 +131,7 @@
 			<artifactId>spring-ai-starter-mcp-client</artifactId>
 			<version>${spring-ai.version}</version>
 		</dependency>
+
 <!--		Server有需要再引入把-->
 <!--		<dependency>-->
 <!--			<groupId>org.springframework.ai</groupId>-->
