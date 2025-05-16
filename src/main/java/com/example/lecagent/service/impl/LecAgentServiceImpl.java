@@ -24,10 +24,11 @@ import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.PromptChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
-import org.springframework.ai.chat.memory.MessageWindowChatMemory;
+
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.document.DocumentReader;
+
 import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
 import org.springframework.ai.rag.preretrieval.query.expansion.MultiQueryExpander;
@@ -158,7 +159,7 @@ public class LecAgentServiceImpl implements LecAgentService {
                 .documentRetriever(VectorStoreDocumentRetriever.builder()
                         .vectorStore(vectorStore)   //向量存储
                         .similarityThreshold(0.1) // 相似度阈值
-                        .topK(3) // 返回文档数量
+                        .topK(5) // 返回文档数量
                         .build())
                 .build();
     }
@@ -250,7 +251,7 @@ public class LecAgentServiceImpl implements LecAgentService {
     @Override
     public Result getNowHistory(String chatIdString) {
         Long chatId = Long.valueOf(chatIdString);
-        List<Message> chatRecord =  redisChatMemory.get(String.valueOf(chatId), 10);
+        List<Message> chatRecord =  redisChatMemory.get(String.valueOf(chatId));
         return Result.okResult(chatRecord);
     }
 

@@ -17,7 +17,8 @@ public class MemoryAdvisor {
         return new RedisChatMemory(
                 host,
                 port,
-                password
+                password,
+                10
         );
     }
 }
