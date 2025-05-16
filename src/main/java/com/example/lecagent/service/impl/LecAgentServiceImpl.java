@@ -70,6 +70,8 @@ public class LecAgentServiceImpl implements LecAgentService {
     //注入RedisChatMemory
     private final RedisChatMemory redisChatMemory;
 
+    //注入RedisChatMemory
+    private final ChatMemory chatMemory= new InMemoryChatMemory();
     //默认系统
     private final String DEFAULT_SYSTEM = "你是乐程娘，涉及到你自己的时候用乐程娘称呼自己，语气可爱一点，擅长计算机专业相关，请用中文回答用户的问题，可以适当加一些emoji";
 
@@ -119,9 +121,9 @@ public class LecAgentServiceImpl implements LecAgentService {
                 .defaultTools(tools)
                 .defaultSystem(DEFAULT_SYSTEM)
                 .defaultAdvisors(
-                        new MessageChatMemoryAdvisor(redisChatMemory),
+                        new MessageChatMemoryAdvisor(redisChatMemory)
                         // 整合 QWQ 的思考过程到输出中
-                        new ReasoningContentAdvisor(0)
+//                        new ReasoningContentAdvisor(0)
                         )
                 .build();
 
