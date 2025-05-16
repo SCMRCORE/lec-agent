@@ -23,7 +23,6 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.document.DocumentReader;
-import org.springframework.ai.mcp.AsyncMcpToolCallback;
 import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
 import org.springframework.ai.rag.preretrieval.query.expansion.MultiQueryExpander;
@@ -69,12 +68,6 @@ public class LecMcpServiceImpl implements LecMcpService {
     private final QueryTransformer queryContext;
     private final RetrievalAugmentationAdvisor retrievalAugmentationAdvisor;
 
-    //minio
-    @Resource
-    private  MinioUtils minioUtils;
-
-    @Autowired
-    private SnowflakeIdWorker snowflakeIdWorker;
 
     @Autowired
     private RedisTemplate redisTemplate;

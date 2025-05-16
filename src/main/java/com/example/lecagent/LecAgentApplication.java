@@ -1,7 +1,9 @@
 package com.example.lecagent;
 
 import org.springframework.ai.chat.client.ChatClient;
+//import org.springframework.ai.mcp.client.autoconfigure.configurer.McpAsyncClientConfigurer;
 import org.springframework.ai.tool.ToolCallbackProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -27,7 +29,7 @@ public class LecAgentApplication {
 					.build();
 
 			// 定义用户输入
-			String userInput = "用高德地图查询北京今天的天气";
+			String userInput = "用github帮我创建一个私有仓库，名为guohe";
 			// 打印问题
 			System.out.println("\n>>> QUESTION: " + userInput);
 			// 调用LLM并打印响应
