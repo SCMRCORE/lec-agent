@@ -32,7 +32,7 @@ public class LecInterceptor implements HandlerInterceptor {
             return false;
         }
         UserContext.setUser(userId);
-        log.info("拦截器获取userId:{}",userId);
+//        log.info("拦截器获取userId:{}",userId);
         return true;
     }
 

@@ -6,7 +6,6 @@ import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeCloudStore;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeDocumentCloudReader;
 import com.alibaba.cloud.ai.dashscope.rag.DashScopeStoreOptions;
-import com.alibaba.cloud.ai.memory.redis.RedisChatMemory;
 import com.alibaba.cloud.ai.memory.redis.RedisChatMemoryRepository;
 import com.example.lecagent.advisor.ReasoningContentAdvisor;
 import com.example.lecagent.config.AppHttpCodeEnum;
@@ -20,11 +19,9 @@ import com.example.lecagent.util.UserContext;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-import org.springframework.ai.chat.client.advisor.PromptChatMemoryAdvisor;
-import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.memory.InMemoryChatMemory;
 
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.document.DocumentReader;
@@ -51,9 +48,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
-import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY;
-
 @Service
 @Slf4j
 public class LecAgentServiceImpl implements LecAgentService {
@@ -68,7 +62,7 @@ public class LecAgentServiceImpl implements LecAgentService {
     private final VectorStore vectorStore;
 
     //注入RedisChatMemory
-    private final RedisChatMemory redisChatMemory;
+    private final ChatMemory redisChatMemory;
 
     //默认系统
     private final String DEFAULT_SYSTEM = "你是乐程娘，涉及到你自己的时候用乐程娘称呼自己，语气可爱一点，擅长计算机专业相关，请用中文回答用户的问题，可以适当加一些emoji";
@@ -105,7 +99,7 @@ public class LecAgentServiceImpl implements LecAgentService {
     );
 
     //构造函数
-    public LecAgentServiceImpl(DashScopeProperties dashScopeProperties, DashScopeChatModel chatModel, ToolCallbackProvider tools, RedisChatMemory redisChatMemory){
+    public LecAgentServiceImpl(DashScopeProperties dashScopeProperties, DashScopeChatModel chatModel, ToolCallbackProvider tools, ChatMemory redisChatMemory){
         this.redisChatMemory = redisChatMemory;
         ChatClient.Builder builder = ChatClient.builder(chatModel);
 
@@ -119,7 +113,7 @@ public class LecAgentServiceImpl implements LecAgentService {
                 .defaultTools(tools)
                 .defaultSystem(DEFAULT_SYSTEM)
                 .defaultAdvisors(
-                        new MessageChatMemoryAdvisor(redisChatMemory),
+                        MessageChatMemoryAdvisor.builder(redisChatMemory).build(),
                         // 整合 QWQ 的思考过程到输出中
                         new ReasoningContentAdvisor(0)
                         )
@@ -221,37 +215,19 @@ public class LecAgentServiceImpl implements LecAgentService {
                         .build())
                 .user(userMessage)
                 .advisors(a->a
-                        .param(CHAT_MEMORY_CONVERSATION_ID_KEY, String.valueOf(chatId))
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 100)
+                        .param("chat_memory_conversation_id", String.valueOf(chatId))
                 )
                 .advisors(retrievalAugmentationAdvisor)
                 .stream()
                 .content();
     }
 
-//    @Override
-//    public String mcpChat(Long chatId, String userMessage) {
-//        if(!checkChatId(chatId)){
-//            throw new IllegalArgumentException("chatId无效");
-//        }
-//
-//        log.info("当前提问："+chatId+"："+userMessage);
-//        return this.chatClient.prompt()
-//                .user(userMessage)
-//                .advisors(a->a
-//                        .param(CHAT_MEMORY_CONVERSATION_ID_KEY, String.valueOf(chatId))
-//                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 100)
-//                )
-//                .advisors(retrievalAugmentationAdvisor)
-//                .call()
-//                .content();
-//    }
-
     //获取当前对话历史
     @Override
     public Result getNowHistory(String chatIdString) {
         Long chatId = Long.valueOf(chatIdString);
         List<Message> chatRecord =  redisChatMemory.get(String.valueOf(chatId));
+        //TODO redis
         return Result.okResult(chatRecord);
     }
 
@@ -277,6 +253,7 @@ public class LecAgentServiceImpl implements LecAgentService {
             return Result.errorResult(AppHttpCodeEnum.INVALID_CHATID);
         }else{
             lecMapper.deleteHistory(chatId, userId);
+            //TODO redis
             redisChatMemory.clear(String.valueOf(chatId));
             return Result.okResult(AppHttpCodeEnum.DELETE_SUCCESS);
         }
