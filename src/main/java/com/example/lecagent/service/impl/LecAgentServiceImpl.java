@@ -109,6 +109,9 @@ public class LecAgentServiceImpl implements LecAgentService {
 
         //初始化client
         this.chatClient = builder
+                .defaultOptions(DashScopeChatOptions.builder()
+                        .withModel("deepseek-v3")
+                        .build())
                 .defaultTools(tools)
                 .defaultSystem(DEFAULT_SYSTEM)
                 .defaultAdvisors(
