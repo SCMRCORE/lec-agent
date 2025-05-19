@@ -64,6 +64,8 @@ public class LecAgentServiceImpl implements LecAgentService {
     //注入RedisChatMemory
     private final ChatMemory redisChatMemory;
 
+    private final DashScopeChatModel chatModel;
+
     //默认系统
     private final String DEFAULT_SYSTEM = "你是乐程娘，涉及到你自己的时候用乐程娘称呼自己，语气可爱一点，擅长计算机专业相关，请用中文回答用户的问题，可以适当加一些emoji";
 
@@ -99,9 +101,11 @@ public class LecAgentServiceImpl implements LecAgentService {
 
     //构造函数
     public LecAgentServiceImpl(DashScopeProperties dashScopeProperties, DashScopeChatModel chatModel, ToolCallbackProvider tools, ChatMemory redisChatMemory){
+        this.chatModel = chatModel;
+        //redis聊天记忆
         this.redisChatMemory = redisChatMemory;
         ChatClient.Builder builder = ChatClient.builder(chatModel);
-
+        //dashScope配置
         this.dashScopeProperties=dashScopeProperties;
         DashScopeStoreOptions options = new DashScopeStoreOptions("lec-vector-store");
         DashScopeApi dashScopeApi = new DashScopeApi(dashScopeProperties.getApiKey());
@@ -109,9 +113,6 @@ public class LecAgentServiceImpl implements LecAgentService {
 
         //初始化client
         this.chatClient = builder
-                .defaultOptions(DashScopeChatOptions.builder()
-                        .withModel("deepseek-v3")
-                        .build())
                 .defaultTools(tools)
                 .defaultSystem(DEFAULT_SYSTEM)
                 .defaultAdvisors(
