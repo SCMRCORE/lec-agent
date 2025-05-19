@@ -18,11 +18,9 @@ import com.example.lecagent.util.UserContext;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.PromptChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.memory.InMemoryChatMemory;
-import org.springframework.ai.document.Document;
-import org.springframework.ai.document.DocumentReader;
 import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
 import org.springframework.ai.rag.preretrieval.query.expansion.MultiQueryExpander;
@@ -36,18 +34,9 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
-import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY;
 
 @Service
 @Slf4j
@@ -55,10 +44,10 @@ public class LecMcpServiceImpl implements LecMcpService {
 
     private final ChatClient chatClient;
 
+    private final ChatMemory redisChatMemory;
     private final DashScopeProperties dashScopeProperties;
 
     private final VectorStore vectorStore;
-    ChatMemory chatMemory = new InMemoryChatMemory();
     private final String DEFAULT_SYSTEM = "你是乐程娘，涉及到你自己的时候用乐程娘称呼自己，语气可爱一点，擅长计算机专业相关，请用中文回答用户的问题，可以适当加一些emoji";
 
     //RAG高级组件
@@ -75,7 +64,8 @@ public class LecMcpServiceImpl implements LecMcpService {
     @Resource
     private LecMapper lecMapper;
 
-    public LecMcpServiceImpl(DashScopeProperties dashScopeProperties, DashScopeChatModel chatModel, ToolCallbackProvider tools){
+    public LecMcpServiceImpl(DashScopeProperties dashScopeProperties, DashScopeChatModel chatModel, ToolCallbackProvider tools, ChatMemory redisChatMemory){
+        this.redisChatMemory = redisChatMemory;
         ChatClient.Builder builder = ChatClient.builder(chatModel);
 
         this.dashScopeProperties=dashScopeProperties;
@@ -88,7 +78,7 @@ public class LecMcpServiceImpl implements LecMcpService {
                 .defaultTools(tools)
                 .defaultSystem(DEFAULT_SYSTEM)
                 .defaultAdvisors(
-                        new PromptChatMemoryAdvisor(chatMemory),
+                        MessageChatMemoryAdvisor.builder(redisChatMemory).build(),
                         // 整合 QWQ 的思考过程到输出中
                         new ReasoningContentAdvisor(0)
                         )
@@ -156,8 +146,7 @@ public class LecMcpServiceImpl implements LecMcpService {
         return this.chatClient.prompt()
                 .user(userMessage)
                 .advisors(a->a
-                        .param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 100)
+                        .param("chat_memory_conversation_id", chatId)
                 )
                 .advisors(retrievalAugmentationAdvisor)
                 .stream()
