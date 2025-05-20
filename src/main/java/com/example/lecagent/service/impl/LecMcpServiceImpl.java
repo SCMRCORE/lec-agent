@@ -50,11 +50,11 @@ public class LecMcpServiceImpl implements LecMcpService {
     private final VectorStore vectorStore;
     private final String DEFAULT_SYSTEM = "你是乐程娘，涉及到你自己的时候用乐程娘称呼自己，语气可爱一点，擅长计算机专业相关，请用中文回答用户的问题，可以适当加一些emoji";
 
-    //RAG高级组件
-    private final MultiQueryExpander multiQueryExpander;
-    private final QueryTransformer queryTransformer;
-    private final QueryTransformer queryTranslation;
-    private final QueryTransformer queryContext;
+//    //RAG高级组件
+//    private final MultiQueryExpander multiQueryExpander;
+//    private final QueryTransformer queryTransformer;
+//    private final QueryTransformer queryTranslation;
+//    private final QueryTransformer queryContext;
     private final RetrievalAugmentationAdvisor retrievalAugmentationAdvisor;
 
 
@@ -84,28 +84,28 @@ public class LecMcpServiceImpl implements LecMcpService {
                         )
                 .build();
 
-        //多查询拓展
-        this.multiQueryExpander = MultiQueryExpander.builder()
-                .chatClientBuilder(builder)
-                .includeOriginal(false)//不包含原始查询
-                .numberOfQueries(3)//生成3个查询变体
-                .build();
-
-        //查询重写
-        this.queryTransformer = RewriteQueryTransformer.builder()
-                .chatClientBuilder(builder)
-                .build();
-
-        //查询翻译
-        this.queryTranslation = TranslationQueryTransformer.builder()
-                .chatClientBuilder(builder)
-                .targetLanguage("Chinese")
-                .build();
-
-        //上下文感知
-        this.queryContext = CompressionQueryTransformer.builder()
-                .chatClientBuilder(builder)
-                .build();
+//        //多查询拓展
+//        this.multiQueryExpander = MultiQueryExpander.builder()
+//                .chatClientBuilder(builder)
+//                .includeOriginal(false)//不包含原始查询
+//                .numberOfQueries(3)//生成3个查询变体
+//                .build();
+//
+//        //查询重写
+//        this.queryTransformer = RewriteQueryTransformer.builder()
+//                .chatClientBuilder(builder)
+//                .build();
+//
+//        //查询翻译
+//        this.queryTranslation = TranslationQueryTransformer.builder()
+//                .chatClientBuilder(builder)
+//                .targetLanguage("Chinese")
+//                .build();
+//
+//        //上下文感知
+//        this.queryContext = CompressionQueryTransformer.builder()
+//                .chatClientBuilder(builder)
+//                .build();
 
 
         //检索增强顾问
@@ -113,8 +113,8 @@ public class LecMcpServiceImpl implements LecMcpService {
                 .queryAugmenter(ContextualQueryAugmenter.builder()
                         .allowEmptyContext(true)
                         .build())
-                .queryExpander(multiQueryExpander)
-                .queryTransformers(List.of(queryTransformer, queryTranslation, queryContext))
+//                .queryExpander(multiQueryExpander)
+//                .queryTransformers(List.of(queryTransformer, queryTranslation, queryContext))
                 .documentRetriever(VectorStoreDocumentRetriever.builder()
                         .vectorStore(vectorStore)   //向量存储
                         .similarityThreshold(0.1) // 相似度阈值
@@ -148,7 +148,7 @@ public class LecMcpServiceImpl implements LecMcpService {
                 .advisors(a->a
                         .param("chat_memory_conversation_id", chatId)
                 )
-                .advisors(retrievalAugmentationAdvisor)
+//                .advisors(retrievalAugmentationAdvisor)
                 .stream()
                 .content();
     }
