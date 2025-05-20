@@ -46,6 +46,7 @@ import reactor.core.publisher.Flux;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -63,8 +64,6 @@ public class LecAgentServiceImpl implements LecAgentService {
 
     //注入RedisChatMemory
     private final ChatMemory redisChatMemory;
-
-    private final DashScopeChatModel chatModel;
 
     //默认系统
     private final String DEFAULT_SYSTEM = "你是乐程娘，涉及到你自己的时候用乐程娘称呼自己，语气可爱一点，擅长计算机专业相关，请用中文回答用户的问题，可以适当加一些emoji";
@@ -101,7 +100,6 @@ public class LecAgentServiceImpl implements LecAgentService {
 
     //构造函数
     public LecAgentServiceImpl(DashScopeProperties dashScopeProperties, DashScopeChatModel chatModel, ToolCallbackProvider tools, ChatMemory redisChatMemory){
-        this.chatModel = chatModel;
         //redis聊天记忆
         this.redisChatMemory = redisChatMemory;
         ChatClient.Builder builder = ChatClient.builder(chatModel);
@@ -156,8 +154,8 @@ public class LecAgentServiceImpl implements LecAgentService {
                 .queryTransformers(List.of(queryContext))
                 .documentRetriever(VectorStoreDocumentRetriever.builder()
                         .vectorStore(vectorStore)   //向量存储
-                        .similarityThreshold(0.1) // 相似度阈值
-                        .topK(5) // 返回文档数量
+                        .similarityThreshold(0.3) // 相似度阈值
+                        .topK(3) // 返回文档数量
                         .build())
                 .build();
     }
@@ -286,8 +284,16 @@ public class LecAgentServiceImpl implements LecAgentService {
     //保存到临时文件
     public String saveToTempFile(MultipartFile multipartFile) throws IOException {
         File tempFile = null;
+
+        String type = getFileType(multipartFile.getOriginalFilename());
+
+        log.info("文件类型为："+type);
         try{
-            tempFile = File.createTempFile("ai-temp", ".pdf");
+            if(type.equals("application/pdf")){
+                tempFile = File.createTempFile(Objects.requireNonNull(multipartFile.getName()), ".pdf");
+            }else{
+                tempFile = File.createTempFile(Objects.requireNonNull(multipartFile.getName()), ".md");
+            }
             tempFile.deleteOnExit();
 
             try (InputStream inputStream = multipartFile.getInputStream();
@@ -306,6 +312,21 @@ public class LecAgentServiceImpl implements LecAgentService {
             }
             throw new RuntimeException("保存临时文件失败", e);
         }
+    }
+
+    public String getFileType(String fileName) {
+        if(fileName!=null){
+            String fileExtension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
+            switch (fileExtension){
+                case "md":
+                    return "text/markdown";
+                case "pdf":
+                    return "application/pdf";
+                default:
+                    return "application/octet-stream";
+            }
+        }
+        return "application/octet-stream";
     }
 
     //保存到MinIO
