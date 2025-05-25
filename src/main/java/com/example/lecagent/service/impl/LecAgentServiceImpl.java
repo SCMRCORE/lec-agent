@@ -55,10 +55,9 @@ public class LecAgentServiceImpl implements LecAgentService {
 
     //注入ChatClient
     private final ChatClient chatClient;
+    private final DashScopeApi dashscopeApi;
 
-    //注入DashScopeProperties
     private final DashScopeProperties dashScopeProperties;
-
     //注入VectorStore
     private final VectorStore vectorStore;
 
@@ -99,19 +98,25 @@ public class LecAgentServiceImpl implements LecAgentService {
     );
 
     //构造函数
-    public LecAgentServiceImpl(DashScopeProperties dashScopeProperties, DashScopeChatModel chatModel, ToolCallbackProvider tools, ChatMemory redisChatMemory){
+    public LecAgentServiceImpl(DashScopeChatModel dashScopeChatModel, DashScopeProperties dashScopeProperties, ChatMemory redisChatMemory){
+
         //redis聊天记忆
         this.redisChatMemory = redisChatMemory;
-        ChatClient.Builder builder = ChatClient.builder(chatModel);
+        ChatClient.Builder builder = ChatClient.builder(dashScopeChatModel);
+
         //dashScope配置
-        this.dashScopeProperties=dashScopeProperties;
+        //配置DashScopeAPI
+        this.dashScopeProperties = dashScopeProperties;
+        this.dashscopeApi = DashScopeApi.builder()
+                .apiKey(dashScopeProperties.getApiKey())
+                .build();
+        //注入DashScope向量数据库
         DashScopeStoreOptions options = new DashScopeStoreOptions("lec-vector-store");
-        DashScopeApi dashScopeApi = new DashScopeApi(dashScopeProperties.getApiKey());
-        this.vectorStore = new DashScopeCloudStore(dashScopeApi, options);
+        this.vectorStore = new DashScopeCloudStore(dashscopeApi, options);
+
 
         //初始化client
         this.chatClient = builder
-                .defaultTools(tools)
                 .defaultSystem(DEFAULT_SYSTEM)
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(redisChatMemory).build(),
@@ -217,7 +222,7 @@ public class LecAgentServiceImpl implements LecAgentService {
                         .build())
                 .user(userMessage)
                 .advisors(a->a
-                        .param("chat_memory_conversation_id", String.valueOf(chatId))
+                        .param(ChatMemory.CONVERSATION_ID, String.valueOf(chatId))
                 )
                 .advisors(retrievalAugmentationAdvisor)
                 .stream()
@@ -273,7 +278,7 @@ public class LecAgentServiceImpl implements LecAgentService {
         saveToMinIO(multipartFile);
         log.info(path);
 
-        DocumentReader reader = new DashScopeDocumentCloudReader(path, new DashScopeApi(dashScopeProperties.getApiKey()), null);
+        DocumentReader reader = new DashScopeDocumentCloudReader(path, dashscopeApi , null);
         List<Document> documentList = reader.get();
         log.info(documentList.toString());
 

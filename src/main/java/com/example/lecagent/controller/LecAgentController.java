@@ -22,8 +22,8 @@ public class LecAgentController {
     @Autowired
     private LecAgentService lecAgentService;
 
-    @Autowired
-    private LecMcpService lecMcpService;
+//    @Autowired
+//    private LecMcpService lecMcpService;
 
     @GetMapping(value="/newchat")
     public Result<String> newChat(){
@@ -36,10 +36,10 @@ public class LecAgentController {
         return lecAgentService.simpleChat(chatId, userMessage, type);
     }
 
-    @GetMapping(value="/mcpchat",produces = "text/html;charset=utf-8")
-    public Flux<String> mcpChat(Long chatId, String userMessage){
-        return lecMcpService.mcpChat(chatId, userMessage);
-    }
+//    @GetMapping(value="/mcpchat",produces = "text/html;charset=utf-8")
+//    public Flux<String> mcpChat(Long chatId, String userMessage){
+//        return lecMcpService.mcpChat(chatId, userMessage);
+//    }
 
     @PostMapping("/import")
     public void importDocuments(@RequestParam MultipartFile multipartFile) throws IOException {
