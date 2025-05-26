@@ -34,6 +34,7 @@ public class WritingAssistantAutoConfig {
 
         OverAllStateFactory overAllStateFactory = () ->{
             OverAllState state = new OverAllState();
+            state.registerKeyAndStrategy("original_text", new ReplaceStrategy());
             state.registerKeyAndStrategy("reword", new ReplaceStrategy());
             state.registerKeyAndStrategy("summary", new ReplaceStrategy());
             state.registerKeyAndStrategy("summary_feedback", new ReplaceStrategy());
